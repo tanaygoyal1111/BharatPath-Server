@@ -16,12 +16,10 @@ The robust, scalable backend for **BharatPath**, the ultimate travel companion f
 
 ## 🛠️ Tech Stack
 
-- **Runtime**: [Node.js](https://nodejs.org/) (LTS recommended)
-- **Framework**: [Express.js](https://expressjs.com/)
-- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
+- **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL + Auth)
 - **Caching**: [Redis](https://redis.io/) for high-speed PNR lookups
-- **Security**: [JSON Web Tokens (JWT)](https://jwt.io/) & [Helmet.js](https://helmetjs.github.io/)
 - **Validation**: [Zod](https://zod.dev/) for robust schema validation
+- **Middleware**: [Express.js](https://expressjs.com/)
 
 ---
 
@@ -31,7 +29,7 @@ The robust, scalable backend for **BharatPath**, the ultimate travel companion f
 
 - Node.js (v18.x or higher)
 - npm or yarn
-- MongoDB Instance (Local or Atlas)
+- Supabase Project (URL and Anon Key)
 - Redis Server (Optional, for caching features)
 
 ### Installation
@@ -51,8 +49,8 @@ The robust, scalable backend for **BharatPath**, the ultimate travel companion f
    Create a `.env` file in the root directory:
    ```env
    PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_super_secret_key
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
    REDIS_URL=redis://localhost:6379
    ```
 
