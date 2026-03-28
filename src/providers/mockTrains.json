@@ -1,0 +1,50 @@
+[
+  {
+    "trainNumber": "22436",
+    "trainName": "VANDE BHARAT EXP",
+    "type": "SUPERFAST",
+    "departure": { "time": "06:00", "station": "NDLS" },
+    "arrival": { "time": "14:00", "station": "BSB" },
+    "duration": "08h 00m",
+    "runningDays": {
+      "M": true, "Tu": true, "W": true, "Th": false, "F": true, "Sa": true, "Su": false
+    },
+    "classes": ["CC", "EC"]
+  },
+  {
+    "trainNumber": "12259",
+    "trainName": "SEALDAH DURONTO",
+    "type": "SUPERFAST",
+    "departure": { "time": "18:15", "station": "NDLS" },
+    "arrival": { "time": "06:45", "station": "BSB" },
+    "duration": "12h 30m",
+    "runningDays": {
+      "M": true, "Tu": true, "W": true, "Th": true, "F": true, "Sa": false, "Su": true
+    },
+    "classes": ["1A", "2A", "3A", "SL"]
+  },
+  {
+    "trainNumber": "12424",
+    "trainName": "DBRT RAJDHANI",
+    "type": "SUPERFAST",
+    "departure": { "time": "16:20", "station": "NDLS" },
+    "arrival": { "time": "01:35", "station": "BSB" },
+    "duration": "09h 15m",
+    "runningDays": {
+      "M": true, "Tu": true, "W": true, "Th": true, "F": true, "Sa": true, "Su": true
+    },
+    "classes": ["1A", "2A", "3A"]
+  },
+  {
+    "trainNumber": "15128",
+    "trainName": "KASHI V EXPRESS",
+    "type": "EXPRESS",
+    "departure": { "time": "11:35", "station": "NDLS" },
+    "arrival": { "time": "04:50", "station": "BSB" },
+    "duration": "17h 15m",
+    "runningDays": {
+      "M": true, "Tu": true, "W": true, "Th": true, "F": true, "Sa": true, "Su": true
+    },
+    "classes": ["2A", "3A", "SL", "2S"]
+  }
+]
