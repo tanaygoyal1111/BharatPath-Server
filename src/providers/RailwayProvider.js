@@ -61,7 +61,7 @@ class RailwayProvider {
         name: "SEALDAH",
         code: "SDAH"
       },
-      doj: "27-03-2026",
+      doj: "01-04-2026",
       total_passengers: 1,
       chart_prepared: true
     };

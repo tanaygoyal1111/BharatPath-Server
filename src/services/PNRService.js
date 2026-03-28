@@ -85,15 +85,15 @@ class PNRService {
 
     return {
       pnr: rawData.pnr,
-      trainNumber: rawData.train.number,
-      trainName: rawData.train.name,
+      trainNumber: rawData.train?.number || 'N/A',
+      trainName: rawData.train?.name || 'N/A',
       from: {
-        code: rawData.from_station.code,
-        name: this._capitalize(rawData.from_station.name)
+        code: rawData.from_station?.code || 'N/A',
+        name: rawData.from_station ? this._capitalize(rawData.from_station.name) : 'N/A'
       },
       to: {
-        code: rawData.to_station.code,
-        name: this._capitalize(rawData.to_station.name)
+        code: rawData.to_station?.code || 'N/A',
+        name: rawData.to_station ? this._capitalize(rawData.to_station.name) : 'N/A'
       },
       departureTime: departureDate.toISOString(),
       arrivalTime: arrivalDate.toISOString(),
