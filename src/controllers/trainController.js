@@ -16,6 +16,27 @@ class TrainController {
       error: null
     });
   }
+
+  async getLiveStatus(req, res) {
+    const { trainNumber } = req.params;
+    logger.info(`Processing live status request for train: ${trainNumber}`);
+
+    try {
+      const liveData = await trainService.getLiveTrainStatus(trainNumber);
+
+      res.status(200).json({
+        success: true,
+        data: liveData,
+        error: null
+      });
+    } catch (error) {
+      // 500 when API and fallback both fail
+      res.status(500).json({
+        success: false,
+        error: error.message || "Unable to fetch live train status"
+      });
+    }
+  }
 }
 
 module.exports = new TrainController();

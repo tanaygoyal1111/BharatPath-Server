@@ -15,6 +15,14 @@ const trainSearchSchema = z.object({
   })
 });
 
+const liveTrainSchema = z.object({
+  params: z.object({
+    trainNumber: z.string()
+      .regex(/^\d{5}$/, 'Train number must be exactly 5 digits')
+  })
+});
+
 module.exports = {
-  trainSearchSchema
+  trainSearchSchema,
+  liveTrainSchema
 };

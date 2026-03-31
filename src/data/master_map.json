@@ -1,0 +1,22 @@
+{
+  "NDLS": {
+    "name": "NEW DELHI",
+    "lat": 28.6429,
+    "lng": 77.2191
+  },
+  "CNB": {
+    "name": "KANPUR CENTRAL",
+    "lat": 26.4357,
+    "lng": 80.3486
+  },
+  "BCT": {
+    "name": "MUMBAI CENTRAL",
+    "lat": 18.9696,
+    "lng": 72.8194
+  },
+  "HWH": {
+    "name": "HOWRAH JN",
+    "lat": 22.5828,
+    "lng": 88.3431
+  }
+}
