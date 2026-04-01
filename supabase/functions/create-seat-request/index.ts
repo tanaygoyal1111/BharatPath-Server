@@ -4,38 +4,38 @@ import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts"
 
 serve(async (req) => {
   try {
-    // Admin Privileges: Initialize using SUPABASE_SERVICE_ROLE_KEY to bypass RLS
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!
     )
 
     // 1. Get the incoming body
     const body = await req.json()
     console.log("Incoming Request Body:", body);
     
-    // 2. Hybrid Authentication
+    // 2. Strict Auth Validation
     const authHeader = req.headers.get('Authorization')
-    let final_user_id = null;
-    
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-      if (user) {
-        final_user_id = user.id
-      } else {
-        console.log("Auth header provided but user lookup failed:", authError)
-      }
+    console.log("Auth Header:", authHeader)
+
+    if (!authHeader) {
+      throw new Error("Missing Authorization header")
     }
 
-    if (!final_user_id) {
-       // Fallback to body.user_id if no valid auth header
-       final_user_id = body.user_id || body.userId;
+    const token = authHeader.replace('Bearer ', '')
+
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser(token)
+
+    if (authError || !user) {
+      throw new Error("Invalid JWT")
     }
-    
-    if (!final_user_id) {
-      throw new Error("No user_id found in Auth header or Request body")
-    }
+
+    const final_user_id = user.id
+    console.log("User:", user?.id)
 
     // 3. Get the PNR from the body
     const pnr = body.pnr || body.pnr_number;
@@ -48,7 +48,6 @@ serve(async (req) => {
 
     // 5. Strict Database Mapping
     const payload = {
-      user_id: final_user_id,
       train_number: body.train_number || body.trainNumber,
       journey_date: body.journey_date || body.journeyDate,
       train_class: body.train_class || body.trainClass,
@@ -61,10 +60,24 @@ serve(async (req) => {
     
     console.log("Mapped Database Payload:", payload);
 
-    // 6. Insert data
-    const { data, error } = await supabase
+    console.log("Creating request for user:", final_user_id);
+    const { data: existingRequests } = await supabaseAdmin
       .from('seat_requests')
-      .insert([payload])
+      .select('id')
+      .eq('user_id', final_user_id)
+      .eq('status', 'OPEN');
+
+    if (existingRequests && existingRequests.length > 0) {
+      throw new Error("You already have an active seat request");
+    }
+
+    // 6. Insert data
+    const { data, error } = await supabaseAdmin
+      .from('seat_requests')
+      .insert([{
+        ...payload,
+        user_id: final_user_id
+      }])
       .select()
       
     if (error) {
