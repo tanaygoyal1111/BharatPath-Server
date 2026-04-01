@@ -23,6 +23,9 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/v1/pnr', require('./routes/pnrRoutes'));
 app.use('/api/v1/trains', require('./routes/trainRoutes'));
+app.use('/api/v1/journey', require('./routes/journeyRoutes'));
+app.use('/api/v1/proximity', require('./routes/proximityRoutes'));
+app.use('/api/v1/amenities', require('./routes/amenitiesRoutes'));
 
 // Error handling
 app.use(errorHandler);

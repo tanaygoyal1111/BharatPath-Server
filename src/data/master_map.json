@@ -18,5 +18,120 @@
     "name": "HOWRAH JN",
     "lat": 22.5828,
     "lng": 88.3431
+  },
+  "SDAH": {
+    "name": "SEALDAH",
+    "lat": 22.5652,
+    "lng": 88.3699
+  },
+  "ALJ": {
+    "name": "ALIGARH JN",
+    "lat": 27.8974,
+    "lng": 78.0748
+  },
+  "TDL": {
+    "name": "TUNDLA JN",
+    "lat": 27.2157,
+    "lng": 78.2326
+  },
+  "PRYJ": {
+    "name": "PRAYAGRAJ JN",
+    "lat": 25.4358,
+    "lng": 81.8463
+  },
+  "DDU": {
+    "name": "PT. DEEN DAYAL UPADHYAYA JN",
+    "lat": 25.2787,
+    "lng": 83.0107
+  },
+  "PNBE": {
+    "name": "PATNA JN",
+    "lat": 25.6066,
+    "lng": 85.1346
+  },
+  "KIUL": {
+    "name": "KIUL JN",
+    "lat": 25.1808,
+    "lng": 86.2839
+  },
+  "JHAJ": {
+    "name": "JHAJHA",
+    "lat": 24.7764,
+    "lng": 86.3724
+  },
+  "ASN": {
+    "name": "ASANSOL JN",
+    "lat": 23.6831,
+    "lng": 86.9581
+  },
+  "BSB": {
+    "name": "VARANASI JN",
+    "lat": 25.3176,
+    "lng": 83.0036
+  },
+  "MGS": {
+    "name": "MUGHAL SARAI JN",
+    "lat": 25.2800,
+    "lng": 83.1195
+  },
+  "ALD": {
+    "name": "PRAYAGRAJ (OLD)",
+    "lat": 25.4316,
+    "lng": 81.8300
+  },
+  "LKO": {
+    "name": "LUCKNOW",
+    "lat": 26.8468,
+    "lng": 80.9462
+  },
+  "AGC": {
+    "name": "AGRA CANTT",
+    "lat": 27.1634,
+    "lng": 78.0150
+  },
+  "BPL": {
+    "name": "BHOPAL JN",
+    "lat": 23.2689,
+    "lng": 77.4124
+  },
+  "JP": {
+    "name": "JAIPUR JN",
+    "lat": 26.9200,
+    "lng": 75.7876
+  },
+  "ADI": {
+    "name": "AHMEDABAD JN",
+    "lat": 23.0255,
+    "lng": 72.6007
+  },
+  "SC": {
+    "name": "SECUNDERABAD JN",
+    "lat": 17.4344,
+    "lng": 78.5013
+  },
+  "MAS": {
+    "name": "CHENNAI CENTRAL",
+    "lat": 13.0827,
+    "lng": 80.2707
+  },
+  "SBC": {
+    "name": "BANGALORE CITY JN",
+    "lat": 12.9791,
+    "lng": 77.5713
+  },
+  "PUNE": {
+    "name": "PUNE JN",
+    "lat": 18.5285,
+    "lng": 73.8743
+  },
+  "LNL": {
+    "name": "LONAVLA",
+    "lat": 18.7500,
+    "lng": 73.4072
+  },
+  "CCH": {
+    "name": "CHINCHWAD",
+    "lat": 18.6324,
+    "lng": 73.7845
   }
 }
