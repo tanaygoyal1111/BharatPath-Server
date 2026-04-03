@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const amenitiesController = require('../controllers/amenitiesController');
 const validate = require('../middleware/validate');
-const { amenitiesQuerySchema } = require('../validators/amenitiesValidator');
+const { amenitiesBodySchema } = require('../validators/amenitiesValidator');
 
 // Aggressive rate limit: 30 requests per minute per IP
 // Protects Overpass API from abuse
@@ -17,12 +17,12 @@ const amenitiesLimiter = rateLimit({
   }
 });
 
-// GET /api/v1/amenities?lat=...&lng=...  — Public (no auth)
-router.get(
+// POST /api/v1/amenities — Public (no auth required)
+router.post(
   '/',
   amenitiesLimiter,
-  validate(amenitiesQuerySchema),
-  amenitiesController.getAmenities
+  validate(amenitiesBodySchema),
+  amenitiesController.getNearbyAmenities
 );
 
 module.exports = router;

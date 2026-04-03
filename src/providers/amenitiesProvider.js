@@ -5,41 +5,33 @@ const OVERPASS_API_URL = process.env.OVERPASS_API_URL || 'https://overpass-api.d
 
 class AmenitiesProvider {
   constructor() {
-    this.timeout = 5000; // 5 second hard timeout
+    this.timeout = 8000; // 8s hard timeout — Overpass can be slow
   }
 
   /**
-   * Fetch nearby amenities from Overpass API (OpenStreetMap).
-   * Queries for hospitals, hotels, restaurants, pharmacies, ATMs, police stations
-   * within a given radius of the coordinates.
+   * Fetch nearby hospitals & hotels from Overpass API (OpenStreetMap).
+   * Returns categorized { hospitals, hotels } arrays.
    *
-   * @param {number} lat - Latitude
-   * @param {number} lng - Longitude
-   * @param {number} radiusMeters - Search radius in meters (default: 2000)
-   * @returns {Array} Clean amenity objects
+   * @param {number} lat - Latitude (already rounded)
+   * @param {number} lng - Longitude (already rounded)
+   * @returns {{ hospitals: Array, hotels: Array }}
    */
-  async fetchNearbyAmenities(lat, lng, radiusMeters = 2000) {
-    logger.info(`Fetching amenities near (${lat}, ${lng}) radius: ${radiusMeters}m`);
+  async fetchNearbyAmenities(lat, lng) {
+    logger.info(`[AmenitiesProvider] Fetching amenities near (${lat}, ${lng}) radius: 2000m`);
 
-    const overpassQuery = `
-      [out:json][timeout:10];
-      (
-        node["amenity"="hospital"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="pharmacy"](around:${radiusMeters},${lat},${lng});
-        node["tourism"="hotel"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="restaurant"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="atm"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="bank"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="police"](around:${radiusMeters},${lat},${lng});
-        node["amenity"="fuel"](around:${radiusMeters},${lat},${lng});
-      );
-      out body;
+    const query = `
+[out:json][timeout:10];
+(
+  node["amenity"="hospital"](around:2000,${lat},${lng});
+  node["tourism"="hotel"](around:2000,${lat},${lng});
+);
+out;
     `.trim();
 
     try {
       const response = await axios.post(
         OVERPASS_API_URL,
-        `data=${encodeURIComponent(overpassQuery)}`,
+        `data=${encodeURIComponent(query)}`,
         {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           timeout: this.timeout
@@ -47,81 +39,43 @@ class AmenitiesProvider {
       );
 
       const elements = response.data?.elements || [];
-      logger.info(`Overpass returned ${elements.length} amenity nodes`);
+      logger.info(`[AmenitiesProvider] Overpass returned ${elements.length} nodes`);
 
-      return this._transformElements(elements, lat, lng);
+      return this._categorize(elements, lat, lng);
     } catch (error) {
-      // Overpass can be slow/unavailable — NEVER throw, return empty
-      logger.error('Overpass API error:', error.message);
-      return [];
+      // Overpass can be slow/unavailable — NEVER crash, return empty
+      logger.error('[AmenitiesProvider] Overpass API error:', error.message);
+      return { hospitals: [], hotels: [] };
     }
   }
 
   /**
-   * Transform raw Overpass elements into clean amenity objects.
+   * Categorize raw Overpass elements into { hospitals, hotels }.
    */
-  _transformElements(elements, originLat, originLng) {
-    return elements
-      .filter(el => el.tags && (el.tags.name || el.tags.amenity || el.tags.tourism))
-      .map(el => {
-        const type = this._resolveType(el.tags);
-        const name = el.tags.name || el.tags['name:en'] || this._fallbackName(type);
-        const distance = this._haversineDistance(originLat, originLng, el.lat, el.lon);
+  _categorize(elements, originLat, originLng) {
+    const hospitals = [];
+    const hotels = [];
 
-        return {
-          id: String(el.id),
-          type,
-          name,
-          lat: el.lat,
-          lng: el.lon,
-          distance: Math.round(distance), // meters
-          address: el.tags['addr:street'] || el.tags['addr:full'] || null,
-          phone: el.tags.phone || el.tags['contact:phone'] || null
-        };
-      })
-      .sort((a, b) => a.distance - b.distance); // Closest first
-  }
+    for (const el of elements) {
+      if (!el.tags) continue;
 
-  _resolveType(tags) {
-    if (tags.amenity === 'hospital') return 'hospital';
-    if (tags.amenity === 'pharmacy') return 'pharmacy';
-    if (tags.amenity === 'restaurant') return 'restaurant';
-    if (tags.amenity === 'atm' || tags.amenity === 'bank') return 'atm';
-    if (tags.amenity === 'police') return 'police';
-    if (tags.amenity === 'fuel') return 'fuel';
-    if (tags.tourism === 'hotel') return 'hotel';
-    return 'other';
-  }
+      const name = el.tags.name || el.tags['name:en'] || null;
+      if (!name) continue; // skip unnamed nodes
 
-  _fallbackName(type) {
-    const names = {
-      hospital: 'Hospital',
-      pharmacy: 'Pharmacy',
-      hotel: 'Hotel',
-      restaurant: 'Restaurant',
-      atm: 'ATM/Bank',
-      police: 'Police Station',
-      fuel: 'Fuel Station'
-    };
-    return names[type] || 'Amenity';
-  }
+      const item = {
+        name,
+        lat: el.lat,
+        lng: el.lon
+      };
 
-  /**
-   * Haversine formula: distance between two lat/lng points in meters.
-   */
-  _haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // Earth radius in meters
-    const toRad = (deg) => (deg * Math.PI) / 180;
+      if (el.tags.amenity === 'hospital') {
+        hospitals.push(item);
+      } else if (el.tags.tourism === 'hotel') {
+        hotels.push(item);
+      }
+    }
 
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
+    return { hospitals, hotels };
   }
 }
 
