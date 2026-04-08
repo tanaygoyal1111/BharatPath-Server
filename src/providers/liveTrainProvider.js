@@ -4,11 +4,11 @@ const logger = require('../utils/logger');
 class LiveTrainProvider {
   constructor() {
     this.apiKey = process.env.RAPIDAPI_KEY;
-    this.baseUrl = process.env.RAPIDAPI_URL || 'https://irctc1.p.rapidapi.com/api/v1/liveTrainStatus';
+    this.baseUrl = 'https://indian-railway-irctc.p.rapidapi.com/api/trains/v1/train/status';
   }
 
-  async fetchLiveStatus(trainNumber) {
-    logger.info(`Fetching live train status for ${trainNumber} from external API`);
+  async fetchLiveStatus(trainNumber, departureDate) {
+    logger.info(`Fetching live train status for ${trainNumber} on ${departureDate} from external API`);
     
     // Fallback to mock if API key isn't provided
     if (!this.apiKey || this.apiKey === 'YOUR_RAPIDAPI_KEY') {
@@ -18,10 +18,17 @@ class LiveTrainProvider {
 
     try {
       const response = await axios.get(this.baseUrl, {
-        params: { trainNo: trainNumber },
+        params: { 
+          train_number: trainNumber,
+          departure_date: departureDate,
+          isH5: 'true',
+          client: 'web',
+          deviceIdentifier: 'web-client'
+        },
         headers: {
+          'x-rapid-api': 'rapid-api-database',
           'X-RapidAPI-Key': this.apiKey,
-          'X-RapidAPI-Host': 'irctc1.p.rapidapi.com'
+          'X-RapidAPI-Host': 'indian-railway-irctc.p.rapidapi.com'
         },
         timeout: 5000 // 5 seconds timeout constraint as per requirements
       });

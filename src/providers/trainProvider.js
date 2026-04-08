@@ -1,47 +1,87 @@
-const fs = require('fs').promises;
-const path = require('path');
+const axios = require('axios');
 const logger = require('../utils/logger');
 
 class TrainProvider {
   constructor() {
-    this.mockDataPath = path.join(__dirname, 'mockTrains.json');
+    this.apiHost = 'irctc-api2.p.rapidapi.com';
+    this.apiKey = process.env.RAPIDAPI_KEY;
+    this.baseUrl = 'https://irctc-api2.p.rapidapi.com/trainAvailability';
   }
 
+  /**
+   * Converts YYYY-MM-DD (or ISO string) to DD-MM-YYYY format required by the API.
+   */
+  _formatDate(dateString) {
+    // Handle ISO strings by taking just the date part
+    const datePart = dateString.split('T')[0];
+    const [year, month, day] = datePart.split('-');
+    return `${day}-${month}-${year}`;
+  }
+
+  /**
+   * Fetches trains between two stations for a given date from the IRCTC API.
+   * Returns data already normalized to match the frontend TypeScript interface.
+   */
   async fetchTrainsBetweenStations(from, to, date) {
+    const formattedDate = this._formatDate(date);
+
+    logger.info(`Fetching trains from ${from} to ${to} for date ${formattedDate} (original: ${date})`);
+
     try {
-      logger.info(`Fetching trains from ${from} to ${to} for date ${date}`);
-      
-      // Artificial delay as per requirement
-      await new Promise(res => setTimeout(res, 1500));
-
-      const rawData = await fs.readFile(this.mockDataPath, 'utf8');
-      const trains = JSON.parse(rawData);
-
-      // Derive day of week from date
-      const dayOfWeek = this._getDayOfWeek(date);
-      logger.debug(`Derived day of week: ${dayOfWeek}`);
-
-      // Filter by station codes and running days
-      const filteredTrains = trains.filter(train => {
-        const isCorrectRoute = train.departure.station === from && train.arrival.station === to;
-        const runsOnDay = train.runningDays[dayOfWeek] === true;
-        return isCorrectRoute && runsOnDay;
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          source: from,
+          destination: to,
+          date: formattedDate,
+        },
+        headers: {
+          'x-rapidapi-host': this.apiHost,
+          'x-rapidapi-key': this.apiKey,
+        },
+        timeout: parseInt(process.env.API_TIMEOUT, 10) || 8000,
       });
 
-      return filteredTrains;
+      const apiDataArray = response.data?.data;
+
+      if (!Array.isArray(apiDataArray)) {
+        logger.warn('IRCTC API returned non-array data, returning empty list', {
+          responseShape: typeof response.data,
+        });
+        return [];
+      }
+
+      logger.info(`IRCTC API returned ${apiDataArray.length} trains`);
+
+      // Normalize to frontend schema
+      return apiDataArray.map(raw => ({
+        trainNumber: raw.trainNumber,
+        trainName: raw.trainName,
+        type: 'EXP', // Fallback type
+        duration: raw.duration, // Pass as is, e.g., "17h 5m"
+        departure: { time: raw.departure, station: raw.from.code },
+        arrival: { time: raw.arrival, station: raw.to.code },
+        runningDays: {
+          M: raw.runningDays.includes('Mon'),
+          Tu: raw.runningDays.includes('Tue'),
+          W: raw.runningDays.includes('Wed'),
+          Th: raw.runningDays.includes('Thu'),
+          F: raw.runningDays.includes('Fri'),
+          Sa: raw.runningDays.includes('Sat'),
+          Su: raw.runningDays.includes('Sun'),
+        },
+        classes: raw.allClasses,
+      }));
     } catch (error) {
-      logger.error('Error in TrainProvider.fetchTrainsBetweenStations', error);
+      if (error.response) {
+        logger.error(`IRCTC API error: ${error.response.status}`, {
+          status: error.response.status,
+          data: error.response.data,
+        });
+      } else {
+        logger.error('IRCTC API network/timeout error', { message: error.message });
+      }
       throw error;
     }
-  }
-
-  _getDayOfWeek(dateString) {
-    const days = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
-    // Use split and Date.UTC to ensure timezone independence
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
-    // Since we created it in UTC, we must use getUTCDay
-    return days[date.getUTCDay()];
   }
 }
 

@@ -1,12 +1,32 @@
 const { redisClient } = require('../config/redis');
-const journeyProvider = require('../providers/journeyProvider');
+const pnrService = require('./PNRService');
+const liveTrainProvider = require('../providers/liveTrainProvider');
 const supabase = require('../config/supabase');
 const logger = require('../utils/logger');
+const stationCoords = require('../data/coord.json');
 
 class JourneyService {
   constructor() {
     this.CACHE_TTL = 60; // 60 seconds — live data
     this.CACHE_PREFIX = 'journey:v1';
+  }
+
+  _enrichWithGPS(body) {
+    if (!body || !Array.isArray(body.stations)) return [];
+    
+    return body.stations.map(station => {
+      const code = station.stationCode || station.code;
+      const coords = stationCoords[code];
+      return {
+        code: code,
+        name: station.stationName || station.name || code,
+        schArrival: station.scheduled_arrival_time || station.schArrival || null,
+        actArrival: station.actual_arrival_time || station.actArrival || null,
+        platform: station.platform || null,
+        lat: coords ? coords.lat : null,
+        lng: coords ? coords.lng : null
+      };
+    });
   }
 
   /**
@@ -35,36 +55,102 @@ class JourneyService {
 
     // ── 2. Fetch from Provider ────────────────────────────
     logger.info(`🐢 CACHE_MISS [journey] PNR: ${pnr}`);
-    let journeyData;
+    
+    let pnrData;
+    let liveData;
 
     try {
-      journeyData = await journeyProvider.fetchJourneyData(pnr);
+      // Step A: Fetch PNR structure
+      pnrData = await pnrService.getPNRStatus(pnr);
+      
+      const trainNumber = pnrData.trainNo;
+      
+      // Step B: Format the departureDate into YYYYMMDD
+      // Note: PNR API returns `departs` as an ISO String, e.g. '2023-10-15T00:00:00.000Z'
+      const formattedDate = pnrData.departs.split('T')[0].replace(/-/g, '');
+
+      // Step C: Fetch Live Status
+      liveData = await liveTrainProvider.fetchLiveStatus(trainNumber, formattedDate);
+      
     } catch (apiError) {
-      // ── 3. Fallback: return stale cache ─────────────────
-      logger.warn(`API Error for journey PNR: ${pnr}, 🔁 FALLBACK_TRIGGERED`);
-      try {
-        const staleData = await redisClient.get(cacheKey);
-        if (staleData) {
-          const parsed = typeof staleData === 'string' ? JSON.parse(staleData) : staleData;
-          parsed.source = 'fallback';
-          logger.info(`♻️ FALLBACK_HIT [journey] PNR: ${pnr}`);
-          return parsed;
+      // Step D (Fallback): Defensively return PNR data if live fetch fails
+      logger.warn(`API Error for journey PNR: ${pnr}, 🔁 FALLBACK_TRIGGERED`, apiError.message);
+      
+      if (!pnrData) {
+        // If we don't even have PNR data (e.g. invalid PNR), try to return stale cache
+        try {
+          const staleData = await redisClient.get(cacheKey);
+          if (staleData) {
+            const parsed = typeof staleData === 'string' ? JSON.parse(staleData) : staleData;
+            parsed.source = 'fallback';
+            logger.info(`♻️ FALLBACK_HIT [journey] PNR: ${pnr}`);
+            return parsed;
+          }
+        } catch (redisErr) {
+          logger.error('Redis fallback read error:', redisErr);
         }
-      } catch (redisErr) {
-        logger.error('Redis fallback read error:', redisErr);
+
+        return {
+          pnr,
+          trainNumber: null,
+          trainName: null,
+          status: 'UNAVAILABLE',
+          source: 'fallback',
+          fallback: true,
+          liveStatusAvailable: false,
+          statusMessage: 'Journey data temporarily unavailable. Please try again shortly.'
+        };
       }
 
-      // No cache at all — return graceful empty
+      // Return basic PNR response if live fail but PNR is fine
       return {
-        pnr,
-        trainNumber: null,
-        trainName: null,
-        status: 'UNAVAILABLE',
-        source: 'fallback',
-        fallback: true,
-        message: 'Journey data temporarily unavailable. Please try again shortly.'
+        pnr: pnrData.pnr,
+        trainNumber: pnrData.trainNo,
+        trainName: pnrData.trainName,
+        isCancelled: false,
+        liveStatusAvailable: false,
+        currentStationCode: null,
+        statusMessage: 'Live status currently unavailable.',
+        stations: [
+          {
+            code: pnrData.sourceCode,
+            name: pnrData.sourceCity,
+            platform: pnrData.platform,
+            seat: pnrData.seat,
+            schArrival: pnrData.departs
+          },
+          {
+            code: pnrData.destCode,
+            name: pnrData.destCity,
+            schArrival: pnrData.arrival
+          }
+        ]
       };
     }
+
+    // Step D (Hydration)
+    let body = liveData; 
+    if (liveData && liveData.body) {
+      body = liveData.body;
+    }
+
+    const message = body.train_status_message || '';
+    const cleanMessage = message.replace(/<[^>]*>?/igm, ''); // Strip HTML tags if any
+
+    const isCancelled = body.terminated === true || cleanMessage.toLowerCase().includes('cancel');
+
+    const enrichedStations = this._enrichWithGPS(body);
+
+    const journeyData = {
+      pnr: pnrData.pnr,
+      trainNumber: pnrData.trainNo,
+      trainName: pnrData.trainName,
+      isCancelled: isCancelled,
+      liveStatusAvailable: true,
+      currentStationCode: body.current_station || null,
+      statusMessage: cleanMessage,
+      stations: enrichedStations
+    };
 
     // ── 4. Store in Redis ─────────────────────────────────
     try {
@@ -94,10 +180,10 @@ class JourneyService {
       user_id: userId,
       pnr: data.pnr,
       train_number: data.trainNumber,
-      from_station: data.currentStation?.code || data.routeStations?.[0]?.code || 'N/A',
-      to_station: data.destination?.code || 'N/A',
-      journey_date: data.journeyDate || new Date().toISOString().split('T')[0],
-      status: this._resolveStatus(data.status),
+      from_station: data.currentStationCode || data.stations?.[0]?.code || 'N/A',
+      to_station: data.stations?.[data.stations.length - 1]?.code || 'N/A',
+      journey_date: new Date().toISOString().split('T')[0],
+      status: this._resolveStatus(data.isCancelled ? 'CANCELLED' : 'RUNNING'),
       updated_at: new Date().toISOString()
     };
 
@@ -119,6 +205,7 @@ class JourneyService {
     const s = apiStatus.toUpperCase();
     if (s === 'RUNNING' || s === 'ACTIVE' || s === 'BOARDED') return 'active';
     if (s === 'COMPLETED' || s === 'ARRIVED') return 'completed';
+    if (s === 'CANCELLED') return 'cancelled';
     return 'upcoming';
   }
 }

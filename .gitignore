@@ -4,3 +4,5 @@ node_modules
 dist
 logs
 server.log
+src/data/offline_graph.json
+*.csv
