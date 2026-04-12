@@ -24,7 +24,28 @@ class PNRService {
         coach: 'B4',
         seat: '22',
         status: 'CNF',
+        statusTag: 'CNF',
         journeyStatus: 'ACTIVE'
+      };
+    }
+
+    if (pnr === '1112223334') {
+      return {
+        pnr: '1112223334',
+        trainNo: '12424',
+        trainName: 'DBRT RAJDHANI',
+        sourceCode: 'NDLS',
+        sourceCity: 'New Delhi',
+        destCode: 'GHY',
+        destCity: 'Guwahati',
+        departs: new Date(Date.now() + 7200000).toISOString(), // 2 hours from now
+        arrival: new Date(Date.now() + 24 * 3600000).toISOString(),
+        platform: "PF 12",
+        coach: 'A1',
+        seat: '42',
+        status: 'CNF',
+        statusTag: 'CNF',
+        journeyStatus: 'UPCOMING'
       };
     }
 
@@ -85,6 +106,9 @@ class PNRService {
     const destCode = raw.to_station || raw.destinationStation;
     const sourceCity = masterMap[sourceCode]?.name || sourceCode;
     const destCity = masterMap[destCode]?.name || destCode;
+
+    const departs = new Date(raw.dateOfJourney || raw.departureTime || new Date()).toISOString();
+    const arrival = new Date(raw.arrivalDate || raw.arrivalTime || new Date()).toISOString();
 
     return {
       pnr: raw.pnrNumber || raw.pnr,
