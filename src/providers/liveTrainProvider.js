@@ -10,10 +10,8 @@ class LiveTrainProvider {
   async fetchLiveStatus(trainNumber, departureDate) {
     logger.info(`Fetching live train status for ${trainNumber} on ${departureDate} from external API`);
     
-    // Fallback to mock if API key isn't provided
     if (!this.apiKey || this.apiKey === 'YOUR_RAPIDAPI_KEY') {
-      logger.warn('No valid RAPIDAPI_KEY found, returning MOCK data for provider level.');
-      return this._getMockResponse(trainNumber);
+      throw new Error('CRITICAL: RAPIDAPI_KEY is missing from environment variables.');
     }
 
     try {
@@ -40,30 +38,6 @@ class LiveTrainProvider {
     }
   }
 
-  _getMockResponse(trainNumber) {
-    // Return structured mock response loosely resembling what the real API might return
-    return {
-      success: true,
-      data: {
-        trainNo: trainNumber,
-        trainName: "RAJdhani Express",
-        status: "RUNNING",
-        delayInMinutes: 15,
-        platform: "3",
-        dateOfJourney: new Date().toISOString().split('T')[0],
-        currentStation: {
-          stationName: "NEW DELHI",
-          stationCode: "NDLS"
-        },
-        nextStation: {
-          stationName: "KANPUR CENTRAL",
-          stationCode: "CNB",
-          distance: 440,
-          eta: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString()
-        }
-      }
-    };
-  }
 }
 
 module.exports = new LiveTrainProvider();

@@ -9,46 +9,6 @@ class PNRService {
   }
 
   async getPNRStatus(pnr) {
-    if (pnr === '1234567890') {
-      return {
-        pnr: '1234567890',
-        trainNo: '20504',
-        trainName: 'RAJDHANI EXP',
-        sourceCode: 'NDLS',
-        sourceCity: 'New Delhi',
-        destCode: 'DBRG',
-        destCity: 'Dibrugarh',
-        departs: new Date().toISOString(),
-        arrival: new Date(Date.now() + 86400000).toISOString(),
-        platform: "PF 16",
-        coach: 'B4',
-        seat: '22',
-        status: 'CNF',
-        statusTag: 'CNF',
-        journeyStatus: 'ACTIVE'
-      };
-    }
-
-    if (pnr === '1112223334') {
-      return {
-        pnr: '1112223334',
-        trainNo: '12424',
-        trainName: 'DBRT RAJDHANI',
-        sourceCode: 'NDLS',
-        sourceCity: 'New Delhi',
-        destCode: 'GHY',
-        destCity: 'Guwahati',
-        departs: new Date(Date.now() + 7200000).toISOString(), // 2 hours from now
-        arrival: new Date(Date.now() + 24 * 3600000).toISOString(),
-        platform: "PF 12",
-        coach: 'A1',
-        seat: '42',
-        status: 'CNF',
-        statusTag: 'CNF',
-        journeyStatus: 'UPCOMING'
-      };
-    }
-
     const cacheKey = `pnr:${pnr}`;
     let cachedData = null;
 

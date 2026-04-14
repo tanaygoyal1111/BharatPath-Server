@@ -17,13 +17,15 @@ class TrainProvider {
     const [year, month, day] = datePart.split('-');
     return `${day}-${month}-${year}`;
   }
-
   /**
    * Fetches trains between two stations for a given date from the IRCTC API.
    * Returns data already normalized to match the frontend TypeScript interface.
    */
   async fetchTrainsBetweenStations(from, to, date) {
     const formattedDate = this._formatDate(date);
+    const fullUrl = `${this.baseUrl}?source=${from}&destination=${to}&date=${formattedDate}`;
+
+
 
     logger.info(`Fetching trains from ${from} to ${to} for date ${formattedDate} (original: ${date})`);
 
@@ -40,6 +42,7 @@ class TrainProvider {
         },
         timeout: parseInt(process.env.API_TIMEOUT, 10) || 8000,
       });
+      
 
       const apiDataArray = response.data?.data;
 

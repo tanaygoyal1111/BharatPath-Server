@@ -12,6 +12,7 @@ const validate = (schema) => (req, res, next) => {
   } catch (error) {
     if (error instanceof ZodError || error.name === 'ZodError') {
       const issues = error.issues || error.errors || [];
+      console.error(`[Validate Middleware] Validation failed for ${req.method} ${req.originalUrl}`, JSON.stringify(issues, null, 2));
       return res.status(400).json({
         success: false,
         error: {

@@ -27,6 +27,8 @@ class TrainService {
     // 2. Fetch from Provider
     logger.info('🐢 CACHE MISS: Fetching from provider');
     const trains = await trainProvider.fetchTrainsBetweenStations(from, to, date);
+    console.log(from,to,date ,"Provider");
+    
 
     // 3. Sort trains by departure time
     const sortedTrains = trains.sort((a, b) => {
