@@ -15,14 +15,24 @@ class JourneyService {
     if (!body || !Array.isArray(body.stations)) return [];
     
     return body.stations.map(station => {
+      // Map exact API keys from the live JSON response
       const code = station.stationCode || station.code;
       const coords = stationCoords[code];
+      
+      const schArr = station.arrivalTime || station.schArrival || null;
+      const actArr = station.actual_arrival_time || station.actArrival || null;
+
       return {
         code: code,
         name: station.stationName || station.name || code,
-        schArrival: station.scheduled_arrival_time || station.schArrival || null,
-        actArrival: station.actual_arrival_time || station.actArrival || null,
-        platform: station.platform || null,
+        schArrival: schArr,
+        actArrival: actArr,
+        // Single 'time' string the frontend relies on for timeline fallbacks
+        time: actArr || schArr || '--:--',
+        // API returns 'expected_platform' as an integer
+        platform: station.expected_platform ? String(station.expected_platform) : (station.platform || null),
+        // API returns 'distance' as a string (e.g. "167")
+        distance: parseInt(station.distance || 0, 10),
         lat: coords ? coords.lat : null,
         lng: coords ? coords.lng : null
       };
@@ -103,10 +113,14 @@ class JourneyService {
       }
 
       // Return basic PNR response if live fail but PNR is fine
+      const fallbackStartMs = new Date(pnrData.departs).getTime();
       return {
         pnr: pnrData.pnr,
         trainNumber: pnrData.trainNo,
         trainName: pnrData.trainName,
+        // ADDED FOR FRONTEND ENGINE:
+        startTime: fallbackStartMs,
+        endTime: new Date(pnrData.arrival).getTime() || (fallbackStartMs + 86400000),
         isCancelled: false,
         liveStatusAvailable: false,
         currentStationCode: null,
@@ -134,20 +148,31 @@ class JourneyService {
       body = liveData.body;
     }
 
+    // Clean the HTML tags out of "Train has crossed <b>Sahatwar</b> at 01:09"
     const message = body.train_status_message || '';
-    const cleanMessage = message.replace(/<[^>]*>?/igm, ''); // Strip HTML tags if any
-
+    const cleanMessage = message.replace(/<[^>]*>?/igm, '');
     const isCancelled = body.terminated === true || cleanMessage.toLowerCase().includes('cancel');
-
     const enrichedStations = this._enrichWithGPS(body);
+
+    // Convert PNR ISO dates to Epoch MS for the frontend state engine
+    const startTimeMs = new Date(pnrData.departs).getTime();
+    const endTimeMs = new Date(pnrData.arrival).getTime() || (startTimeMs + 86400000);
+    
+    // Extract current_station (returns "BUI")
+    const currStationCode = typeof body.current_station === 'object' 
+      ? body.current_station?.station_code 
+      : body.current_station;
 
     const journeyData = {
       pnr: pnrData.pnr,
       trainNumber: pnrData.trainNo,
       trainName: pnrData.trainName,
+      // FRONTEND ENGINE REQUIREMENTS:
+      startTime: startTimeMs,
+      endTime: endTimeMs,
       isCancelled: isCancelled,
       liveStatusAvailable: true,
-      currentStationCode: body.current_station || null,
+      currentStationCode: currStationCode || null,
       statusMessage: cleanMessage,
       stations: enrichedStations
     };
