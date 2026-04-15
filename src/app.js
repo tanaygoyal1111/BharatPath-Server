@@ -20,6 +20,15 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// 🩺 Health Check Route for Render / Cron-job.org
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'BharatPath Backend is Awake and Routing!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/v1/pnr', require('./routes/pnrRoutes'));
 app.use('/api/v1/trains', require('./routes/trainRoutes'));
